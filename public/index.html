@@ -1,0 +1,1241 @@
+<!DOCTYPE html>
+<html lang="en" class="light-mode">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZK | Carrier Lookup</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%236366f1'%3E%3Cpath d='M13.04 14.69l1.91-2.82-1.91-2.82c-.92-1.36-.92-3.11 0-4.47l3.18-4.69c-1.54-.21-3.12.17-4.39 1.08L4.31 6.64c-2.36 1.69-2.36 5.03 0 6.72l7.52 5.67c1.27.91 2.85 1.29 4.39 1.08l-3.18-4.69c-.92-1.36-.92-3.11 0-4.47z'/%3E%3C/svg%3E">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%236366f1'%3E%3Cpath d='M13.04 14.69l1.91-2.82-1.91-2.82c-.92-1.36-.92-3.11 0-4.47l3.18-4.69c-1.54-.21-3.12.17-4.39 1.08L4.31 6.64c-2.36 1.69-2.36 5.03 0 6.72l7.52 5.67c1.27.91 2.85 1.29 4.39 1.08l-3.18-4.69c-.92-1.36-.92-3.11 0-4.47z'/%3E%3C/svg%3E">
+    <meta name="theme-color" content="#6366f1">
+    <style>
+        :root {
+            /* Light mode colors */
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --primary-light: #818cf8;
+            --bg-main: #f8fafc;
+            --bg-card: rgba(255, 255, 255, 0.7);
+            --bg-sidebar: rgba(255, 255, 255, 0.8);
+            --text-primary: #1e293b;
+            --text-secondary: #475569;
+            --border-color: rgba(226, 232, 240, 0.8);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --sidebar-width: 260px;
+            --transition-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .dark-mode {
+            --primary: #818cf8;
+            --primary-dark: #6366f1;
+            --primary-light: #a5b4fc;
+            --bg-main: #0f172a;
+            --bg-card: rgba(30, 41, 59, 0.7);
+            --bg-sidebar: rgba(15, 23, 42, 0.8);
+            --text-primary: #f1f5f9;
+            --text-secondary: #cbd5e1;
+            --border-color: rgba(51, 65, 85, 0.8);
+            --glass-border: rgba(51, 65, 85, 0.3);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.5;
+            background-color: var(--bg-main);
+            color: var(--text-primary);
+            display: flex;
+            min-height: 100vh;
+            transition: background-color 0.3s var(--transition-smooth);
+        }
+
+        .light-mode body {
+            background-image: 
+                radial-gradient(circle at 20% 30%, rgba(99, 102, 241, 0.08) 0%, transparent 30%),
+                radial-gradient(circle at 80% 70%, rgba(129, 140, 248, 0.08) 0%, transparent 30%);
+            background-attachment: fixed;
+        }
+
+        .dark-mode body {
+            background-image: 
+                radial-gradient(circle at 20% 30%, rgba(99, 102, 241, 0.1) 0%, transparent 30%),
+                radial-gradient(circle at 80% 70%, rgba(129, 140, 248, 0.05) 0%, transparent 30%);
+            background-attachment: fixed;
+        }
+
+        .sidebar {
+            width: var(--sidebar-width);
+            background-color: var(--bg-sidebar);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-right: 1px solid var(--border-color);
+            padding: 1.25rem;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+            z-index: 10;
+            transition: all 0.3s var(--transition-smooth);
+            transform: translateX(0);
+        }
+
+        .sidebar.collapsed {
+            transform: translateX(-100%);
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            
+            .sidebar.active {
+                transform: translateX(0);
+            }
+            
+            .main-content {
+                margin-left: 0 !important;
+            }
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 1.5rem;
+            text-align: center;
+            padding: 0.75rem;
+            border-bottom: 1px solid var(--border-color);
+            position: relative;
+        }
+
+        .logo-icon {
+            width: 32px;
+            height: 32px;
+            filter: drop-shadow(0 0 8px rgba(99, 102, 241, 0.3));
+        }
+
+        .logo-text {
+            font-size: 2rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--primary), var(--primary-light));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .theme-toggle {
+            position: absolute;
+            right: 0.75rem;
+            top: 0.75rem;
+            background: transparent;
+            border: none;
+            color: var(--primary);
+            cursor: pointer;
+            padding: 0.25rem;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s var(--transition-smooth);
+        }
+
+        .theme-toggle:hover {
+            background-color: rgba(99, 102, 241, 0.1);
+            transform: rotate(30deg);
+        }
+
+        .nav-links {
+            list-style: none;
+            margin-top: 1.25rem;
+        }
+
+        .nav-link {
+            padding: 0.65rem 0.85rem;
+            margin-bottom: 0.5rem;
+            border-radius: 0.375rem;
+            cursor: pointer;
+            transition: all 0.3s var(--transition-smooth);
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            color: var(--text-primary);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .nav-link svg {
+            width: 18px;
+            height: 18px;
+            transition: transform 0.3s var(--transition-smooth);
+        }
+
+        .nav-link.active {
+            background-color: var(--primary);
+            color: white;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+        }
+
+        .nav-link.active svg {
+            transform: scale(1.2);
+        }
+
+        .nav-link:not(.active):hover {
+            background-color: rgba(99, 102, 241, 0.1);
+            color: var(--primary);
+        }
+
+        .nav-link:not(.active):hover svg {
+            transform: translateX(3px);
+        }
+
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s var(--transition-smooth);
+        }
+
+        .nav-link.active::after {
+            left: 100%;
+        }
+
+        .main-content {
+            flex: 1;
+            margin-left: var(--sidebar-width);
+            padding: 1.5rem;
+            transition: all 0.3s var(--transition-smooth);
+        }
+
+        .mobile-menu-toggle {
+            position: fixed;
+            top: 1rem;
+            left: 1rem;
+            z-index: 20;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 2px 10px rgba(99, 102, 241, 0.3);
+            display: none;
+            animation: pulse-animation 2s infinite;
+        }
+
+        @keyframes pulse-animation {
+            0% {
+                box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.7);
+            }
+            70% {
+                box-shadow: 0 0 0 10px rgba(99, 102, 241, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(99, 102, 241, 0);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .mobile-menu-toggle {
+                display: flex;
+            }
+        }
+
+        .section-title {
+            margin-bottom: 1.25rem;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            position: relative;
+            display: inline-block;
+            transition: color 0.3s var(--transition-smooth);
+        }
+
+        .section-title::after {
+            content: '';
+            position: absolute;
+            bottom: -4px;
+            left: 0;
+            width: 40px;
+            height: 3px;
+            background: var(--primary);
+            border-radius: 3px;
+        }
+
+        .card {
+            background: var(--bg-card);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            padding: 1.25rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid var(--border-color);
+            transition: all 0.3s var(--transition-smooth);
+            animation: fade-in 0.5s ease-out;
+        }
+
+        @keyframes fade-in {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .card:hover {
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1rem;
+        }
+
+        .stat-card {
+            background: rgba(99, 102, 241, 0.05);
+            border-radius: 0.5rem;
+            padding: 1.25rem;
+            text-align: center;
+            border: 1px solid var(--border-color);
+            transition: all 0.3s var(--transition-smooth);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.1);
+        }
+
+        .stat-card h3 {
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.5rem;
+            transition: color 0.3s var(--transition-smooth);
+        }
+
+        .stat-card p {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-top: 0.25rem;
+            transition: color 0.3s var(--transition-smooth);
+            position: relative;
+        }
+
+        .stat-card.loading p {
+            position: relative;
+        }
+
+        .stat-card.loading p::after {
+            content: '';
+            position: absolute;
+            bottom: -4px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 40px;
+            height: 2px;
+            background: var(--primary);
+            animation: pulse 1.5s infinite var(--transition-smooth);
+        }
+
+        @keyframes pulse {
+            0%, 100% { 
+                transform: translateX(-50%) scaleX(1);
+                opacity: 0.5;
+            }
+            50% { 
+                transform: translateX(-50%) scaleX(1.5);
+                opacity: 1;
+            }
+        }
+
+        .lookup-form {
+            display: flex;
+            gap: 0.75rem;
+            margin-bottom: 1.25rem;
+        }
+
+        @media (max-width: 576px) {
+            .lookup-form {
+                flex-direction: column;
+            }
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 0.65rem 0.85rem;
+            border: 1px solid var(--border-color);
+            border-radius: 0.375rem;
+            font-size: 0.95rem;
+            transition: all 0.3s var(--transition-smooth);
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-primary);
+        }
+
+        .dark-mode input[type="text"] {
+            background: rgba(30, 41, 59, 0.5);
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+
+        button {
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 0.375rem;
+            padding: 0.65rem 1.25rem;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.3s var(--transition-smooth);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        button:hover {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+        }
+
+        button:active {
+            transform: translateY(1px);
+        }
+
+        button.loading {
+            pointer-events: none;
+            opacity: 0.8;
+        }
+
+        button.loading::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 200%;
+            height: 100%;
+            background: linear-gradient(
+                90deg,
+                transparent,
+                rgba(255, 255, 255, 0.3),
+                transparent
+            );
+            animation: shimmer 1.5s infinite var(--transition-smooth);
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(50%); }
+        }
+
+        .table-container {
+            overflow-x: auto;
+            border-radius: 0.5rem;
+            border: 1px solid var(--border-color);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .dark-mode .table-container {
+            background: rgba(30, 41, 59, 0.3);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 0.85rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+            transition: background-color 0.3s var(--transition-smooth), color 0.3s var(--transition-smooth);
+        }
+
+        th {
+            background-color: rgba(99, 102, 241, 0.1);
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+        }
+
+        td {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr {
+            transition: all 0.2s var(--transition-smooth);
+        }
+
+        tr:hover td {
+            background-color: rgba(99, 102, 241, 0.05);
+        }
+
+        .loading-row td {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .loading-row td::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 200%;
+            height: 100%;
+            background: linear-gradient(
+                90deg,
+                rgba(255, 255, 255, 0.05) 0%,
+                rgba(255, 255, 255, 0.1) 50%,
+                rgba(255, 255, 255, 0.05) 100%
+            );
+            animation: shimmer 2s infinite var(--transition-smooth);
+        }
+
+        .dark-mode .loading-row td::after {
+            background: linear-gradient(
+                90deg,
+                rgba(30, 41, 59, 0.1) 0%,
+                rgba(30, 41, 59, 0.2) 50%,
+                rgba(30, 41, 59, 0.1) 100%
+            );
+        }
+
+        .ad-section {
+            margin-top: 1.5rem;
+            padding: 1.5rem;
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.8), rgba(129, 140, 248, 0.8));
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-radius: 0.75rem;
+            text-align: center;
+            color: white;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+            position: relative;
+            overflow: hidden;
+            animation: ad-pulse 3s infinite alternate;
+        }
+
+        @keyframes ad-pulse {
+            0% {
+                box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+            }
+            100% {
+                box-shadow: 0 8px 24px rgba(99, 102, 241, 0.4);
+            }
+        }
+
+        .ad-section::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(
+                circle,
+                rgba(255, 255, 255, 0.1) 0%,
+                transparent 70%
+            );
+            animation: rotate 20s linear infinite;
+        }
+
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .ad-section h3 {
+            font-size: 1.25rem;
+            margin-bottom: 0.75rem;
+            font-weight: 700;
+            position: relative;
+        }
+
+        .ad-section p {
+            opacity: 0.9;
+            font-size: 0.95rem;
+            position: relative;
+            margin-bottom: 1rem;
+        }
+
+        .ad-section button {
+            background: white;
+            color: var(--primary);
+            margin: 0 auto;
+            display: inline-flex;
+            font-size: 0.9rem;
+            padding: 0.5rem 1rem;
+            transition: all 0.3s var(--transition-smooth);
+        }
+
+        .ad-section button:hover {
+            background: rgba(255, 255, 255, 0.9);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            transform: scale(1.05);
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 1rem;
+            padding: 0.75rem 0;
+        }
+
+        .pagination-info {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            transition: color 0.3s var(--transition-smooth);
+        }
+
+        .pagination-buttons {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .pagination button {
+            padding: 0.4rem 0.85rem;
+            background: rgba(99, 102, 241, 0.1);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            font-size: 0.85rem;
+            transition: all 0.3s var(--transition-smooth);
+        }
+
+        .pagination button:not(:disabled):hover {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        .pagination button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background: rgba(99, 102, 241, 0.05);
+            color: var(--text-secondary);
+        }
+
+        .lookup-result-container {
+            margin-top: 1rem;
+            background: rgba(99, 102, 241, 0.05);
+            border-radius: 0.5rem;
+            border: 1px solid var(--border-color);
+            transition: all 0.3s var(--transition-smooth);
+            overflow: hidden;
+        }
+
+        .dark-mode .lookup-result-container {
+            background: rgba(30, 41, 59, 0.3);
+        }
+
+        .lookup-result {
+            padding: 0;
+        }
+
+        .result-item {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--border-color);
+            transition: all 0.3s var(--transition-smooth);
+            animation: slide-in 0.3s ease-out;
+        }
+
+        @keyframes slide-in {
+            from {
+                opacity: 0;
+                transform: translateX(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .result-item:last-child {
+            border-bottom: none;
+        }
+
+        .result-item:hover {
+            background-color: rgba(99, 102, 241, 0.05);
+        }
+
+        .result-icon {
+            width: 20px;
+            height: 20px;
+            margin-right: 0.75rem;
+            color: var(--primary);
+            flex-shrink: 0;
+            transition: transform 0.3s var(--transition-smooth);
+        }
+
+        .result-item:hover .result-icon {
+            transform: scale(1.2);
+        }
+
+        .result-label {
+            font-weight: 600;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            width: 120px;
+            flex-shrink: 0;
+        }
+
+        .result-value {
+            font-size: 0.9rem;
+            color: var(--text-primary);
+            flex-grow: 1;
+        }
+
+        .manual-section {
+            margin-top: 1.5rem;
+        }
+
+        .manual-section h3 {
+            font-size: 1.1rem;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+            transition: color 0.3s var(--transition-smooth);
+        }
+
+        .manual-steps {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 0.75rem;
+        }
+
+        .manual-step {
+            background: rgba(99, 102, 241, 0.05);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            border: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            transition: all 0.3s var(--transition-smooth);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .manual-step:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 16px rgba(99, 102, 241, 0.1);
+        }
+
+        .dark-mode .manual-step {
+            background: rgba(30, 41, 59, 0.3);
+        }
+
+        .step-number {
+            width: 32px;
+            height: 32px;
+            background: var(--primary);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-bottom: 0.75rem;
+            font-size: 0.85rem;
+            transition: all 0.3s var(--transition-smooth);
+        }
+
+        .manual-step:hover .step-number {
+            transform: scale(1.1);
+        }
+
+        .step-icon {
+            width: 24px;
+            height: 24px;
+            color: var(--primary);
+            margin-bottom: 0.75rem;
+            transition: all 0.3s var(--transition-smooth);
+        }
+
+        .manual-step:hover .step-icon {
+            transform: translateY(-3px);
+        }
+
+        .step-title {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            transition: color 0.3s var(--transition-smooth);
+        }
+
+        .step-description {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            transition: color 0.3s var(--transition-smooth);
+        }
+
+        .flag {
+            margin-left: 0.25rem;
+            font-size: 1.1rem;
+        }
+
+        /* Loading animations */
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .skeleton {
+            background: linear-gradient(
+                90deg,
+                rgba(255, 255, 255, 0.1),
+                rgba(255, 255, 255, 0.2),
+                rgba(255, 255, 255, 0.1)
+            );
+            background-size: 200% 100%;
+            animation: skeleton-loading 1.5s infinite;
+            border-radius: 4px;
+            height: 1em;
+            margin: 0.2em 0;
+        }
+
+        @keyframes skeleton-loading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        /* Tooltip styles */
+        .tooltip {
+            position: relative;
+            display: inline-block;
+        }
+
+        .tooltip .tooltip-text {
+            visibility: hidden;
+            width: 120px;
+            background-color: var(--bg-card);
+            color: var(--text-primary);
+            text-align: center;
+            border-radius: 6px;
+            padding: 5px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -60px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            border: 1px solid var(--border-color);
+            font-size: 0.8rem;
+        }
+
+        .tooltip:hover .tooltip-text {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        /* Notification styles */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 1rem;
+            background: var(--bg-card);
+            border-left: 4px solid var(--primary);
+            border-radius: 4px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            transform: translateX(120%);
+            transition: transform 0.3s ease-out;
+            max-width: 300px;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification-title {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+            color: var(--text-primary);
+        }
+
+        .notification-message {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 992px) {
+            .stats-grid {
+                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            }
+        }
+
+        @media (max-width: 768px) {
+            .manual-steps {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <button class="mobile-menu-toggle" id="mobile-menu-toggle">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+    </button>
+
+    <aside class="sidebar" id="sidebar">
+        <div class="logo">
+            <svg class="logo-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M13.04 14.69l1.91-2.82-1.91-2.82c-.92-1.36-.92-3.11 0-4.47l3.18-4.69c-1.54-.21-3.12.17-4.39 1.08L4.31 6.64c-2.36 1.69-2.36 5.03 0 6.72l7.52 5.67c1.27.91 2.85 1.29 4.39 1.08l-3.18-4.69c-.92-1.36-.92-3.11 0-4.47z"/>
+            </svg>
+            <span class="logo-text">ZK</span>
+            <button class="theme-toggle" id="theme-toggle">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="theme-icon">
+                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                </svg>
+            </button>
+        </div>
+        <ul class="nav-links">
+            <li class="nav-link active" data-section="lookup">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                Carrier Lookup
+            </li>
+            <li class="nav-link" data-section="statistics">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="20" x2="18" y2="10"></line>
+                    <line x1="12" y1="20" x2="12" y2="4"></line>
+                    <line x1="6" y1="20" x2="6" y2="14"></line>
+                </svg>
+                Lookup Statistics
+            </li>
+            <li class="nav-link" data-section="telegram">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21.5 2l-19 19"></path>
+                    <path d="M21.5 2l-9 9"></path>
+                    <path d="M3.27 6.96L12 12l-8.73 5.04"></path>
+                    <path d="M12 22l4-4"></path>
+                    <path d="M20 16l-4 4"></path>
+                </svg>
+                Telegram Bot
+            </li>
+            <li class="nav-link" data-section="about">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="16" x2="12" y2="12"></line>
+                    <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                </svg>
+                About
+            </li>
+        </ul>
+    </aside>
+    <main class="main-content">
+        <div id="lookup-section" class="section">
+            <h2 class="section-title">Carrier Lookup</h2>
+            <div class="card">
+                <form id="lookup-form" class="lookup-form">
+                    <input type="text" id="phone-number" placeholder="Enter phone number (e.g., +1234567890)" required>
+                    <button type="submit" id="lookup-button">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                        </svg>
+                        Lookup
+                    </button>
+                </form>
+                <div class="lookup-result-container">
+                    <div id="lookup-result" class="lookup-result">
+                        <div class="result-item">
+                            <svg class="result-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <line x1="12" y1="16" x2="12" y2="12"></line>
+                                <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                            </svg>
+                            <span class="result-label">Status:</span>
+                            <span class="result-value">Enter a phone number to lookup carrier information</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="manual-section card">
+                <h3>How to Use Carrier Lookup</h3>
+                <div class="manual-steps">
+                    <div class="manual-step">
+                        <div class="step-number">1</div>
+                        <svg class="step-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+                        </svg>
+                        <div class="step-title">Enter Phone Number</div>
+                        <div class="step-description">Input the full phone number including country code</div>
+                    </div>
+                    <div class="manual-step">
+                        <div class="step-number">2</div>
+                        <svg class="step-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <polyline points="12 6 12 12 16 14"></polyline>
+                        </svg>
+                        <div class="step-title">Wait for Results</div>
+                        <div class="step-description">Our system will process your request quickly</div>
+                    </div>
+                    <div class="manual-step">
+                        <div class="step-number">3</div>
+                        <svg class="step-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="current  xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14 2 14 8 20 8"></polyline>
+                            <line x1="16" y1="13" x2="8" y2="13"></line>
+                            <line x1="16" y1="17" x2="8" y2="17"></line>
+                            <polyline points="10 9 9 9 8 9"></polyline>
+                        </svg>
+                        <div class="step-title">View Results</div>
+                        <div class="step-description">See detailed carrier information for the number</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="ad-section">
+                <h3>Premium Features</h3>
+                <p>Upgrade to access bulk lookups, detailed carrier information, and real-time notifications!</p>
+                <button id="upgrade-button">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="8.5" cy="7" r="4"></circle>
+                        <line x1="20" y1="8" x2="20" y2="14"></line>
+                        <line x1="23" y1="11" x2="17" y2="11"></line>
+                    </svg>
+                    Upgrade Now
+                </button>
+            </div>
+        </div>
+        <div id="statistics-section" class="section" style="display: none;">
+            <h2 class="section-title">Lookup Statistics</h2>
+            <div class="card">
+                <div class="stats-grid">
+                    <div class="stat-card loading">
+                        <h3>Total Users</h3>
+                        <p id="total-users">-</p>
+                    </div>
+                    <div class="stat-card loading">
+                        <h3>Total Lookups</h3>
+                        <p id="total-lookups">-</p>
+                    </div>
+                    <div class="stat-card loading">
+                        <h3>Active Today</h3>
+                        <p id="active-today">-</p>
+                    </div>
+                    <div class="stat-card loading">
+                        <h3>Web Lookups</h3>
+                        <p id="web-lookups">-</p>
+                    </div>
+                    <div class="stat-card loading">
+                        <h3>Telegram Lookups</h3>
+                        <p id="telegram-lookups">-</p>
+                    </div>
+                </div>
+            </div>
+            <div class="card">
+                <h3 class="section-title">Lookup History</h3>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Phone Number</th>
+                                <th>Carrier</th>
+                                <th>Country</th>
+                                <th>Date</th>
+                                <th>Source</th>
+                            </tr>
+                        </thead>
+                        <tbody id="lookup-history">
+                            <tr class="loading-row">
+                                <td>Loading...</td>
+                                <td>Loading...</td>
+                                <td>Loading...</td>
+                                <td>Loading...</td>
+                                <td>Loading...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="pagination">
+                    <div class="pagination-info">
+                        <span id="page-info">Showing <span id="showing-start">0</span>-<span id="showing-end">0</span> of <span id="total-entries">0</span> entries</span>
+                    </div>
+                    <div class="pagination-buttons">
+                        <button id="prev-btn" disabled>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="15 18 9 12 15 6"></polyline>
+                            </svg>
+                            Prev
+                        </button>
+                        <button id="next-btn" disabled>
+                            Next
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="9 18 15 12 9 6"></polyline>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div id="telegram-section" class="section" style="display: none;">
+            <h2 class="section-title">Telegram Bot</h2>
+            <div class="card">
+                <h3>Use Our Telegram Bot</h3>
+                <p>Access carrier lookup services directly from Telegram. Our bot provides the same powerful lookup capabilities in a convenient chat interface.</p>
+                <div class="manual-steps">
+                    <div class="manual-step">
+                        <div class="step-number">1</div>
+                        <svg class="step-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21.5 2l-19 19"></path>
+                            <path d="M21.5 2l-9 9"></path>
+                            <path d="M3.27 6.96L12 12l-8.73 5.04"></path>
+                            <path d="M12 22l4-4"></path>
+                            <path d="M20 16l-4 4"></path>
+                        </svg>
+                        <div class="step-title">Find Our Bot</div>
+                        <div class="step-description">Search for @carrierlookup_bot on Telegram</div>
+                    </div>
+                    <div class="manual-step">
+                        <div class="step-number">2</div>
+                        <svg class="step-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
+                        </svg>
+                        <div class="step-title">Start a Chat</div>
+                        <div class="step-description">Send /start to begin using the bot</div>
+                    </div>
+                    <div class="manual-step">
+                        <div class="step-number">3</div>
+                        <svg class="step-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+                        </svg>
+                        <div class="step-title">Send Phone Number</div>
+                        <div class="step-description">Type a phone number to get carrier information</div>
+                    </div>
+                </div>
+                <div class="ad-section" style="margin-top: 2rem;">
+                    <h3>Try Our Other Bots</h3>
+                    <p>Check out our other useful Telegram bots for various lookup services!</p>
+                    <div style="display: flex; flex-wrap: wrap; gap: 1rem; justify-content: center; margin-top: 1rem;">
+                        <button class="bot-button">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
+                            </svg>
+                            WhatsApp Checker
+                        </button>
+                        <button class="bot-button">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <line x1="2" y1="12" x2="22" y2="12"></line>
+                                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                            </svg>
+                            Global Phone Locator
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div id="about-section" class="section" style="display: none;">
+            <h2 class="section-title">About Carrier Lookup</h2>
+            <div class="card">
+                <h3>Our Service</h3>
+                <p>Carrier Lookup provides accurate and up-to-date information about phone carriers worldwide. Our service helps businesses and individuals verify phone numbers, identify carriers, and get detailed information about phone numbers.</p>
+                <p style="margin-top: 1rem;">Whether you're validating customer information, preventing fraud, or just curious about a phone number, our service provides the data you need quickly and reliably.</p>
+            </div>
+            <div class="card">
+                <h3>Features</h3>
+                <ul style="list-style-type: none; padding: 0;">
+                    <li style="display: flex; align-items: center; margin-bottom: 0.75rem;">
+                        <svg style="width: 20px; height: 20px; margin-right: 0.75rem; color: var(--primary);" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                        Carrier identification for any phone number
+                    </li>
+                    <li style="display: flex; align-items: center; margin-bottom: 0.75rem;">
+                        <svg style="width: 20px; height: 20px; margin-right: 0.75rem; color: var(--primary);" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                        Country and region detection
+                    </li>
+                    <li style="display: flex; align-items: center; margin-bottom: 0.75rem;">
+                        <svg style="width: 20px; height: 20px; margin-right: 0.75rem; color: var(--primary);" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                        Web interface and Telegram bot access
+                    </li>
+                    <li style="display: flex; align-items: center; margin-bottom: 0.75rem;">
+                        <svg style="width: 20px; height: 20px; margin-right: 0.75rem; color: var(--primary);" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                        Fast and reliable results
+                    </li>
+                    <li style="display: flex; align-items: center;">
+                        <svg style="width: 20px; height: 20px; margin-right: 0.75rem; color: var(--primary);" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                        Premium features for business users
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </main>
+
+    <div class="notification" id="notification">
+        <div class="notification-title">Success</div>
+        <div class="notification-message">Lookup completed successfully!</div>
+    </div>
+
+    <script src="lookup.js"></script>
+</body>
+</html>
+
